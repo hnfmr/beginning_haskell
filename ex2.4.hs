@@ -30,6 +30,19 @@ data TimeMachineR = TimeMachineR { manufacturer :: Manufacturer
                                  , capability :: Capability
                                  , price :: Price }
                     deriving Show
+                    
+-- chapter2 record
+data ClientR = GovOrgR  { clientRName :: String }
+             | CompanyR { clientRName :: String
+                        , companyId   :: Integer
+                        , person      :: PersonR
+                        , duty        :: String }
+             | IndividualR { person :: PersonR }
+             deriving Show
+             
+data PersonR = PersonR { firstName :: String
+                       , lastName  :: String
+                       } deriving Show
                                  
 updatePrice :: TimeMachineR -> Float -> TimeMachineR
 updatePrice (machine@TimeMachineR {..}) discount =
@@ -78,19 +91,6 @@ responsibility _                 = "Unknown"
 specialClient :: Client -> Bool
 specialClient (clientName -> "Mr. Qi")       = True
 specialClient (responsibility -> "Director") = True
-
--- chapter2 record
-data ClientR = GovOrgR  { clientRName :: String }
-             | CompanyR { clientRName :: String
-                        , companyId   :: Integer
-                        , person      :: PersonR
-                        , duty        :: String }
-             | IndividualR { person :: PersonR }
-             deriving Show
-             
-data PersonR = PersonR { firstName :: String
-                       , lastName  :: String
-                       } deriving Show
                        
 greet :: ClientR -> String
 greet IndividualR { person = PersonR { .. } } = "Hi, " ++ firstName
