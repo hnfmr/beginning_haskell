@@ -42,6 +42,5 @@ classifyClients' cs =
   let m2 = M.insert CompanyKind s2 m1 in
   let m3 = M.insert IndividualKind s3 m2 in
   m3
-
   
 
