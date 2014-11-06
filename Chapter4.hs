@@ -2,6 +2,8 @@
 module Tree where
 
 import Data.Monoid
+import qualified Data.Map as M
+import qualified Data.Tree as T
 
 data TravelGuide = TravelGuide { title :: String, authors :: [String],
                                  price :: Double } deriving (Show, Eq, Ord)
@@ -44,5 +46,14 @@ instance Monoid Min where
   mempty = Min infinity where infinity = 1/0
   mappend (Min x) (Min y) = Min $ min x y
   
+modifyTravelGuidePrice :: Double -> [TravelGuide] -> [TravelGuide]
+modifyTravelGuidePrice m = map (\tg -> tg { price = m * price tg })
 
+modifyTravelGuidePriceMap :: Double -> M.Map a TravelGuide -> M.Map a TravelGuide
+modifyTravelGuidePriceMap m = M.map (\tg -> tg { price = m * price tg })
 
+modifyTravelGuidePriceTree :: Double -> T.Tree TravelGuide -> T.Tree TravelGuide
+modifyTravelGuidePriceTree m = fmap (\tg -> tg { price = m * price tg })
+
+modifyTravelGuidePrice' :: Functor f => Double -> f TravelGuide -> f TravelGuide
+modifyTravelGuidePrice' m = fmap (\tg -> tg { price = m * price tg })

@@ -19,7 +19,7 @@ treeInsert n Leaf           = Node n Leaf Leaf
 flattenTree :: (BinaryTree a) -> [a]
 flattenTree Leaf = []
 flattenTree (Node v l r) =
-  let subTreeList = (concat $ flattenTree l) ++ (concat $ flattenTree r) in
+  let subTreeList = flattenTree l ++ flattenTree r in
   v : subTreeList
 
 concatTree :: Ord a => BinaryTree a -> BinaryTree a -> BinaryTree a
