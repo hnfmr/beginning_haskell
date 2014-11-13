@@ -9,8 +9,8 @@ clusterAssignmentPhase :: (Vector v, Vectorizable e v) => [v] -> [e] -> M.Map v 
 clusterAssignmentPhase centroids points =
   let initialMap = M.fromList $ zip centroids (repeat [])
   in foldr (\p m -> let chosenCentroid = minimumBy (\x y -> compare (distance x $ toVector p)
-                                                                      (distance y $ toVector p))
-                                                   centroids
+                                                                    (distance y $ toVector p))
+                                         centroids
                     in M.adjust (p:) chosenCentroid m) initialMap points
          
 initializeSimple :: Int -> [e] -> [(Double, Double)]
@@ -27,14 +27,14 @@ kMeans :: (Vector v, Vectorizable e v) => (Int -> [e] -> [v]) -- initialization 
                                        -> Int                 -- number of centroids, k
                                        -> [e]                 -- the information
                                        -> Double              -- threshold
-                                       -> [v]
-kMeans i k points = kMeans' (i k points) points
+                                       -> ([v], Int)
+kMeans i k points = kMeans' (i k points) points 0
 
-kMeans' :: (Vector v, Vectorizable e v) => [v] -> [e] -> Double -> [v]
-kMeans' centroids points threshold =
+kMeans' :: (Vector v, Vectorizable e v) => [v] -> [e] -> Int -> Double -> ([v], Int)
+kMeans' centroids points steps threshold =
   let assignments     = clusterAssignmentPhase centroids points
       oldNewCentroids = newCentroidPhase assignments
       newCentroids    = map snd oldNewCentroids
   in if shouldStop oldNewCentroids threshold
-     then newCentroids
-     else kMeans' newCentroids points threshold
+     then (newCentroids, steps)
+     else kMeans' newCentroids points (steps+1) threshold
