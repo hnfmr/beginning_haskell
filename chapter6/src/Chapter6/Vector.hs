@@ -12,7 +12,7 @@ class (Default v, Ord v) => Vector v where
 instance Vector (Double, Double) where
   distance (a,b) (c,d) = sqrt $ (c-a)*(c-a) + (d-b)*(d-b)
   centroid lst = let (u,v) = foldr (\(a,b) (c,d) -> (a+c,b+d)) (0.0,0.0) lst
-                     n = fromIntegral $ length lst
+                     n     = fromIntegral $ length lst
                  in (u / n, v / n)
 
 class Vector v => Vectorizable e v where
