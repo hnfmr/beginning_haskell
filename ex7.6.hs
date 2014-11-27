@@ -1,11 +1,16 @@
 -- ex7.6.hs
 
-import Control.Monad.State
+-- Reference: https://gist.github.com/edofic/9429263
 
-factorialT :: StateT Integer (State Integer) Integer
---factorialT = undefined
-factorialT = do
-                s <- get
-                lift . put $ s * (execState (execStateT factorialT s*(s-1)) (s-1))
-                return $ s-1
-               
+{-# LANGUAGE PackageImports #-}
+import "mtl" Control.Monad.State
+ 
+factState :: StateT Integer (State Integer) ()
+factState = do
+  n <- get
+  when (n > 1) $ do
+    modify $ subtract 1
+    lift $ modify (*n)
+    factState
+ 
+factorial x = execState (execStateT factState x) 1
