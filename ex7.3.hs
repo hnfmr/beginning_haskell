@@ -57,3 +57,11 @@ clientToPurchaseInfo (Individual {person}) =
 purchaseToTransaction :: Purchase -> Transaction
 purchaseToTransaction (Purchase c p) =
   Transaction $ clientToPurchaseInfo c `S.union` productsToPurchaseInfo p
+
+newtype FrequentSet = FrequentSet (Set PurchaseInfo) deriving (Eq, Ord)
+
+data AssocRule = AssocRule (Set PurchaseInfo) (Set PurchaseInfo) deriving (Eq, Ord)
+
+instance Show AssocRule where
+  show (AssocRule a b) = show a ++ " => " ++ show b
+  

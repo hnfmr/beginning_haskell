@@ -9,8 +9,8 @@ factState :: StateT Integer (State Integer) ()
 factState = do
   n <- get
   when (n > 1) $ do
-    modify $ subtract 1
-    lift $ modify (*n)
+    put $ n-1
+    lift $ modify (*n))
     factState
  
 factorial x = execState (execStateT factState x) 1
