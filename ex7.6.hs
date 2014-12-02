@@ -2,15 +2,14 @@
 
 -- Reference: https://gist.github.com/edofic/9429263
 
-{-# LANGUAGE PackageImports #-}
-import "mtl" Control.Monad.State
+import Control.Monad.State
  
 factState :: StateT Integer (State Integer) ()
 factState = do
   n <- get
   when (n > 1) $ do
     put $ n-1
-    lift $ modify (*n))
+    lift $ modify (*n)
     factState
- 
+
 factorial x = execState (execStateT factState x) 1
