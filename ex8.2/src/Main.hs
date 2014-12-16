@@ -1,7 +1,6 @@
 module Main where
 
 import Control.Concurrent
-import Control.Concurrent.Thread
 import Control.Concurrent.STM
 import Data.List
 import System.Random
@@ -12,8 +11,10 @@ import System.Environment
 main :: IO ()
 main =
   do
-    tid <- forkIO $ randomDelay
-    wait tid
+    m <- newEmptyMVar
+    forkIO $ randomDelay >> putMVar m 10
+    _ <- takeMVar m
+    return ()
 
 randomDelay :: IO ()
 randomDelay = do r <- randomRIO (3, 15)
