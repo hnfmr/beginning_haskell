@@ -1,24 +1,38 @@
 module Main where
 
+import Control.Monad
 import Control.Concurrent
 import Control.Concurrent.STM
 import Data.List
 import System.Random
 
-import System.Environment
+fromYear :: Integer
+fromYear = 1900
 
+toYear :: Integer
+toYear = 1920
+
+supportedYears :: [Integer]
+supportedYears = [fromYear .. toYear]
+
+randomYear :: IO Integer
+randomYear =
+  do
+    g <- newStdGen
+    return $ fst $ randomR (fromYear, toYear) g
+
+forkDelay :: Int -> IO ()-> IO ()
+forkDelay n f = replicateM_ n $ forkIO (randomDelay >> f)
 
 main :: IO ()
 main =
   do
-    m <- newEmptyMVar
-    forkIO $ randomDelay >> putMVar m 10
-    _ <- takeMVar m
-    return ()
+    ys <- newTVar $ replicateM 10 randomYear
+    forkDelay 10 $ atomically $ sim ys 1919
 
 randomDelay :: IO ()
 randomDelay = do r <- randomRIO (3, 15)
-                 threadDelay (r * 10000)
+                 threadDelay (r * 100000)
 
 canTravel1 :: Integer -> STM Bool
 canTravel1 clientNum =
@@ -33,5 +47,11 @@ canTravel2 years =
     ys <- readTVar years
     return $ (nub ys) /= ys
 
-sim :: (Integer -> IO ()) -> Integer -> IO ()
-sim f num = do f num
+sim :: TVar [Integer] -> Integer -> STM ()
+sim ys y =
+  do
+    cond1 <- canTravel1 y
+    cond2 <- canTravel2 ys
+    if not cond1  || not cond2
+      then retry
+      else return ()
