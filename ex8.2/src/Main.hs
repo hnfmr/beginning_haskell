@@ -27,31 +27,35 @@ forkDelay n f = replicateM_ n $ forkIO (randomDelay >> f)
 main :: IO ()
 main =
   do
-    ys <- newTVar $ replicateM 10 randomYear
-    forkDelay 10 $ atomically $ sim ys 1919
+    ys <- replicateM 10 randomYear
+    print $ nub ys
+    stYs <- newTVarIO $ nub ys
+    forkDelay 10 $ randomYear >>= \y -> atomically $ sim stYs y `orElse` return () 
 
 randomDelay :: IO ()
 randomDelay = do r <- randomRIO (3, 15)
                  threadDelay (r * 100000)
 
-canTravel1 :: Integer -> STM Bool
+canTravel1 :: TVar Integer -> STM Bool
 canTravel1 clientNum =
   do
-    if clientNum > 8
+    num <- readTVar clientNum
+    if num > 8
     then return False
     else return True
 
-canTravel2 :: TVar [Integer] -> STM Bool
-canTravel2 years =
+canTravel2 :: Integer -> TVar [Integer] -> STM Bool
+canTravel2 y years =
   do
     ys <- readTVar years
-    return $ (nub ys) /= ys
+    return $ y `notElem` ys
 
 sim :: TVar [Integer] -> Integer -> STM ()
 sim ys y =
   do
-    cond1 <- canTravel1 y
-    cond2 <- canTravel2 ys
-    if not cond1  || not cond2
+    --cond1 <- canTravel1 y
+    cond2 <- canTravel2 y ys
+    if not cond2
+    --if not cond1  || not cond2
       then retry
       else return ()
