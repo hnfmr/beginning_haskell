@@ -1,7 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module DataBuilder where
 
+import GHC.Generics
 import Data.Text
 import qualified Data.Text.Lazy.Builder as B
 import qualified Data.Text.Lazy.Builder.Int as B
@@ -12,16 +14,16 @@ import Data.Monoid((<>), mconcat)
 
 
 data Person = Person { firstName :: String, lastName :: String }
-              deriving (Show, Ord, Eq)
+              deriving (Show, Ord, Eq, Generic)
 
 data Client i = GovOrg  { clientId :: i, clientName :: String }
               | Company { clientId :: i, clientName :: String , person :: Person, duty :: String }
               | Individual { clientId :: i, person :: Person }
-              deriving (Show, Ord, Eq)
+              deriving (Show, Ord, Eq, Generic)
 
-data Product = Product { id :: Int, name :: String, price :: Double, descr :: String } deriving (Show, Ord, Eq)
+data Product = Product { id :: Integer, name :: String, price :: Double, descr :: String } deriving (Show, Ord, Eq, Generic)
 
-data Purchase = Purchase { client :: Client Int, products :: [Product] } deriving (Show, Ord, Eq)
+data Purchase = Purchase { client :: Client Integer, products :: [Product] } deriving (Show, Ord, Eq, Generic)
 
 escapeString :: String -> Text
 escapeString = replace "\n" "\\n" . replace "," "\\," . replace "(" "\\(" .
@@ -32,7 +34,7 @@ personToText (Person f l) =
   "person(" <> B.fromText (escapeString f) <> B.singleton ','
             <> B.fromText (escapeString l) <> B.singleton ')'
                
-clientToText :: Client Int -> B.Builder
+clientToText :: Client Integer -> B.Builder
 clientToText (GovOrg i n) =
   "client(gov," <> B.decimal i <> B.singleton ',' <> B.fromText (escapeString n) <> B.singleton ')'
 
