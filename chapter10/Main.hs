@@ -7,15 +7,15 @@ import Json
 -- data Purchase = Purchase { client :: Client Int, products :: [Product] } deriving (Show, Ord, Eq)
 import Data.Conduit
 import qualified Data.Conduit.Binary as B
-import qualified Data.Conduit.Attoparsec as A
-import qualified Data.Conduit.Text as CT
+-- import qualified Data.Conduit.Attoparsec as A
+-- import qualified Data.Conduit.Text as CT
 import qualified Data.Conduit.List as L
 import qualified Data.ByteString as LB
 import qualified Data.ByteString.Lazy as LLB
  
 import Control.Monad.Trans.Resource(runResourceT)
 import Data.Aeson
-import Data.Text
+-- import Data.Text
 
 savePurchases :: FilePath -> [Purchase] -> IO ()
 savePurchases fPath purchases = runResourceT $
