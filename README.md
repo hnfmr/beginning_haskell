@@ -1,4 +1,4 @@
 beginning_haskell
 =================
 
-Beginning Haskell exercises
+Beginning Haskell notes and exercises
