@@ -1,4 +1,4 @@
-{-# LANGUAGE QuasiQuotes, OverloadedStrings, ScopedTypeVariables, RecordWildCards, TemplateHaskell #-}
+{-# LANGUAGE QuasiQuotes, OverloadedStrings, ScopedTypeVariables, RecordWildCards, TemplateHaskell, MultiParamTypeClasses #-}
 
 import Prelude hiding (product)
 
@@ -19,8 +19,13 @@ import Chapter12.Database
 import Text.Hamlet (HtmlUrl, hamlet)
 import Text.Blaze.Html.Renderer.Text (renderHtml)
 import Data.Text (Text)
+import Data.Text.Lazy (toStrict)
 
 import Text.Digestive
+import Text.Digestive.Util
+
+import qualified Text.Blaze.Html5 as H
+import Text.Digestive.Blaze.Html5
 
 data MyRoute = Products | About
 
@@ -28,13 +33,38 @@ render :: MyRoute ->[(Text, Text)] -> Text
 render About    _ = "/about"
 render Products _ = "/products"
 
--- footer ::HtmlUrl MyRoute
--- footer = [hamlet|
--- <footer>
---   Return to #
---   <a href=@{Home}>Homepage
---   .
--- |]
+countryForm :: Monad m => Form String m Country
+countryForm = Country <$> "name" .: string Nothing
+                      <*> "send" .: bool (Just True)
+
+productForm :: Monad m => Form String m Product
+productForm = Product <$> "name"        .: string Nothing
+                      <*> "description" .: string Nothing
+                      <*> "price"       .: validate isANumber (string Nothing)
+                      <*> "inStock"     .: check "Must be >= 0" (>= 0)
+                                             (validate isANumber (string Nothing))
+
+isANumber :: (Num a, Read a) => String -> Result String a
+isANumber = maybe (Error "Not a number") Success . readMaybe
+
+productView :: View H.Html -> H.Html
+productView view = do
+  form view "/new-product" $ do
+    label      "name"     view "Name:"
+    inputText  "name"     view
+    H.br
+    label      "description" view "Descriptipn:"
+    inputTextArea Nothing Nothing "description" view
+    H.br
+    label      "price"    view "Price:"
+    inputText  "price"    view
+    errorList  "price"    view
+    H.br
+    label      "inStock"  view "# in Stock:"
+    inputText  "inStock"  view
+    errorList  "inStock"  view
+    H.br
+    inputSubmit "Submit"
 
 main :: IO ()
 main = do
@@ -59,6 +89,7 @@ main = do
                 <td>#{productName p}
                 <td>#{productDescription p}
         |] render
+
       get "/product/:productId" $ do
         (productId :: Integer) <- param "productId"
         product <- liftIO $ flip Db.runSqlPersistMPool pool $
@@ -76,12 +107,35 @@ main = do
           Nothing             -> do
                                    status notFound404
                                    html "<h1>Not found :( product</h1>"
+      get "/new-product" $ do
+        view <- getForm "product" productForm
+        let view' = fmap H.toHtml view
+        html $ renderHtml $
+          H.html $ do
+            H.head $ H.title "Grocery Store"
+            H.body $ productView view'
+
+      post "/new-product" $ do
+        params' <- params
+        (view, product) <- postForm "product" productForm (\_ -> return (paramsToEnv params'))
+        case product of
+          Just p -> do
+            key <- liftIO $ Db.runSqlPersistMPool (Db.insert p) pool
+            let newId = Db.fromSqlKey key
+            redirect $ mconcat ["/product/", pack $ show newId]
+          Nothing -> do
+            let view' = fmap H.toHtml view
+            html $ renderHtml $
+              H.html $ do
+                H.head $ H.title "Grocery Store"
+                H.body $ productView view'
+
       notFound $ do
         status notFound404
         html "<h1>Not found :(</h1>"
 
--- main = putStrLn $ renderHtml $ [hamlet|
--- <body>
---   <p>This is my page.
---   ^{footer}
--- |] render
+paramsToEnv :: Monad m => [Param] -> Env m
+paramsToEnv [] _ = fail "Parameter not found"
+paramsToEnv ((k,v):rest) t = if toStrict k == fromPath t
+                               then return [TextInput $ toStrict v]
+                               else paramsToEnv rest t
