@@ -1,4 +1,6 @@
-{-# LANGUAGE QuasiQuotes, OverloadedStrings, ScopedTypeVariables, RecordWildCards, TemplateHaskell, MultiParamTypeClasses #-}
+{-# LANGUAGE QuasiQuotes, OverloadedStrings, ScopedTypeVariables,
+             RecordWildCards, TemplateHaskell, MultiParamTypeClasses,
+             FlexibleContexts#-}
 
 import Prelude hiding (product)
 
@@ -9,17 +11,17 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Logger
 
 import Data.Monoid (mconcat)
-import Web.Scotty
+import Web.Scotty (scotty, Param, get, post, html, notFound, redirect, params, status, param)
 import Network.HTTP.Types
 
 import qualified Database.Persist.Sqlite as Db
--- import qualified Database.Persist.Class
+import qualified Database.Persist.Class
 import Chapter12.Database
 
 import Text.Hamlet (HtmlUrl, hamlet)
 import Text.Blaze.Html.Renderer.Text (renderHtml)
 import Data.Text (Text)
-import Data.Text.Lazy (toStrict)
+import qualified Data.Text.Lazy as T (toStrict)
 
 import Text.Digestive
 import Text.Digestive.Util
@@ -63,6 +65,38 @@ productView view = do
     label      "inStock"  view "# in Stock:"
     inputText  "inStock"  view
     errorList  "inStock"  view
+    H.br
+    inputSubmit "Submit"
+
+clientForm :: Monad m => Form String m Client
+clientForm = Client <$> "firstName" .: string Nothing
+                    <*> "lastName"  .: string Nothing
+                    <*> "address"   .: string Nothing
+                    <*> "country"   .: stringRead "Cannot parse country." Nothing
+                    <*> "age"       .: stringRead "Cannot parse age." Nothing
+
+clientView :: View H.Html -> H.Html
+clientView view = do
+  form view "/new-client" $ do
+    label "firstName" view "First Name:"
+    inputText "firstName" view
+    errorList  "firstName"    view
+    H.br
+    label "lastName" view "Last Name:"
+    inputText "lastName" view
+    errorList  "lastName"    view
+    H.br
+    label "address" view "Address:"
+    inputText "address" view
+    errorList  "address"    view
+    H.br
+    label "country" view "Country:"
+    inputText "country" view
+    errorList  "country"    view
+    H.br
+    label "age" view "Age:"
+    inputText "age" view
+    errorList  "age"    view
     H.br
     inputSubmit "Submit"
 
@@ -130,12 +164,37 @@ main = do
                 H.head $ H.title "Grocery Store"
                 H.body $ productView view'
 
+      get "/new-client" $ do
+        view <- getForm "client" clientForm
+        let view' = fmap H.toHtml view
+        html $ renderHtml $
+          H.html $ do
+            H.head $ H.title "New Client"
+            H.body $ clientView view'
+
+      post "/new-client" $ do
+        params' <- params
+        (view, client) <- postForm "client" clientForm (\_ -> return (paramsToEnv params'))
+        let view' = fmap H.toHtml view
+        case client of
+          Just c -> do
+            html $ renderHtml $
+              H.html $ do
+                H.head $ H.title "Success"
+                H.body $ clientView view'
+          Nothing -> do
+            html $ renderHtml $
+              H.html $ do
+                H.head $ H.title "Failure"
+                H.body $ clientView view'
+        
+
       notFound $ do
         status notFound404
         html "<h1>Not found :(</h1>"
 
 paramsToEnv :: Monad m => [Param] -> Env m
 paramsToEnv [] _ = fail "Parameter not found"
-paramsToEnv ((k,v):rest) t = if toStrict k == fromPath t
-                               then return [TextInput $ toStrict v]
+paramsToEnv ((k,v):rest) t = if T.toStrict k == fromPath t
+                               then return [TextInput $ T.toStrict v]
                                else paramsToEnv rest t
