@@ -22,12 +22,16 @@ import Text.Hamlet (HtmlUrl, hamlet)
 import Text.Blaze.Html.Renderer.Text (renderHtml)
 import Data.Text (Text)
 import qualified Data.Text.Lazy as T (toStrict)
+-- import Data.Text.Read
 
 import Text.Digestive
 import Text.Digestive.Util
 
 import qualified Text.Blaze.Html5 as H
 import Text.Digestive.Blaze.Html5
+
+import GHC.Int (Int64)
+import Data.Maybe (fromJust)
 
 data MyRoute = Products | About
 
@@ -68,12 +72,16 @@ productView view = do
     H.br
     inputSubmit "Submit"
 
+-- data CountryType = China | Japan | USA deriving (Show, Eq, Ord, Read)
+-- data ClientProxy = ClientProxy String String String CountryType Int deriving (Show, Eq, Ord)
+
 clientForm :: Monad m => Form String m Client
 clientForm = Client <$> "firstName" .: string Nothing
-                    <*> "lastName"  .: string Nothing
-                    <*> "address"   .: string Nothing
-                    <*> "country"   .: stringRead "Cannot parse country." Nothing
-                    <*> "age"       .: stringRead "Cannot parse age." Nothing
+                         <*> "lastName"  .: string Nothing
+                         <*> "address"   .: string Nothing
+                         <*> "country"   .: stringRead "Cannot parse country" Nothing
+                         <*> "age"       .: optionalStringRead "Cannot parse age" Nothing
+
 
 clientView :: View H.Html -> H.Html
 clientView view = do
