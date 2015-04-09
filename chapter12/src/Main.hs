@@ -75,11 +75,39 @@ productView view = do
 -- data CountryType = China | Japan | USA deriving (Show, Eq, Ord, Read)
 -- data ClientProxy = ClientProxy String String String CountryType Int deriving (Show, Eq, Ord)
 
+-- xxx :: Monad m => Formlet String m (Db.Key Country)
+-- xxx (Just x) = CountryKey <$> Db.SqlBackendKey x <*> CountryKey
+data Thing = ThingOne | ThingTwo
+           deriving (Show, Eq)
+
+data XXX = XXX { thething :: Thing, number :: Int } deriving (Show, Eq)
+
+thingForm :: (Monad m) => Form Text m XXX
+thingForm = XXX <$> "thething"  .: choice [(ThingOne, "t1"), (ThingTwo, "t2")] Nothing
+                <*> "number"    .: stringRead "fail to parse number" Nothing
+
+thingView :: View H.Html -> H.Html
+thingView view = do
+  form view "/thing" $ do
+    label "thething" view "The Thing:"
+    inputRadio True "thething" view
+
+foo :: String
+foo = "Foo"
+
+bar :: String
+bar = "Foo"
+
 clientForm :: Monad m => Form String m Client
-clientForm = Client <$> "firstName" .: string Nothing
+clientForm = Client <$> "firstName" .: choice [(foo, "Foo"), (bar, "Bar")] Nothing
                          <*> "lastName"  .: string Nothing
                          <*> "address"   .: string Nothing
-                         <*> "country"   .: stringRead "Cannot parse country" Nothing
+                         -- <*> "country"   .: stringRead "Cannot parse country" Nothing
+                         -- <*> (CountryKey . Db.SqlBackendKey) <$> stringRead "xxx" Nothing
+                         -- (CountryKey . Db.SqlBackendKey) <$> stringRead "xxx" Nothing
+                         <*> (Db.toSqlKey <$> "country" .: stringRead "xxx" Nothing)
+                         -- <*> (Db.toSqlKey <$> "country" .: choice [(1, "USA"), (2, "CHINA")] Nothing)
+                         -- <*> (Db.toSqlKey <$> "country" .: choice [(1, "USA"), (2, "CHINA")] Nothing)
                          <*> "age"       .: optionalStringRead "Cannot parse age" Nothing
 
 
@@ -172,7 +200,15 @@ main = do
                 H.head $ H.title "Grocery Store"
                 H.body $ productView view'
 
-      get "/new-client" $ do
+      get "/thing" $ do
+        view <- getForm "thing" thingForm
+        let view' = fmap H.toHtml view
+        html $ renderHtml $
+          H.html $ do
+            H.head $ H.title "Thing"
+            H.body $ thingView view'
+
+      get "/register" $ do
         view <- getForm "client" clientForm
         let view' = fmap H.toHtml view
         html $ renderHtml $
@@ -180,7 +216,7 @@ main = do
             H.head $ H.title "New Client"
             H.body $ clientView view'
 
-      post "/new-client" $ do
+      post "/register" $ do
         params' <- params
         (view, client) <- postForm "client" clientForm (\_ -> return (paramsToEnv params'))
         let view' = fmap H.toHtml view
@@ -189,7 +225,7 @@ main = do
             html $ renderHtml $
               H.html $ do
                 H.head $ H.title "Success"
-                H.body $ clientView view'
+                H.body $ H.text (T.toStrict $ pack (show c))
           Nothing -> do
             html $ renderHtml $
               H.html $ do
