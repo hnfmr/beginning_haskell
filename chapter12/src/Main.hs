@@ -99,21 +99,21 @@ bar :: String
 bar = "Foo"
 
 clientForm :: Monad m => Form String m Client
-clientForm = Client <$> "firstName" .: choice [(foo, "Foo"), (bar, "Bar")] Nothing
+clientForm = Client <$> "firstName" .: string Nothing 
                          <*> "lastName"  .: string Nothing
                          <*> "address"   .: string Nothing
                          -- <*> "country"   .: stringRead "Cannot parse country" Nothing
                          -- <*> (CountryKey . Db.SqlBackendKey) <$> stringRead "xxx" Nothing
                          -- (CountryKey . Db.SqlBackendKey) <$> stringRead "xxx" Nothing
-                         <*> (Db.toSqlKey <$> "country" .: stringRead "xxx" Nothing)
-                         -- <*> (Db.toSqlKey <$> "country" .: choice [(1, "USA"), (2, "CHINA")] Nothing)
+                         -- <*> (Db.toSqlKey <$> "country" .: stringRead "xxx" Nothing)
+                         <*> (Db.toSqlKey <$> "country" .: choice [(1, "USA"), (2, "CHINA")] Nothing)
                          -- <*> (Db.toSqlKey <$> "country" .: choice [(1, "USA"), (2, "CHINA")] Nothing)
                          <*> "age"       .: optionalStringRead "Cannot parse age" Nothing
 
 
 clientView :: View H.Html -> H.Html
 clientView view = do
-  form view "/new-client" $ do
+  form view "/register" $ do
     label "firstName" view "First Name:"
     inputText "firstName" view
     errorList  "firstName"    view
@@ -127,7 +127,7 @@ clientView view = do
     errorList  "address"    view
     H.br
     label "country" view "Country:"
-    inputText "country" view
+    inputRadio True "country" view
     errorList  "country"    view
     H.br
     label "age" view "Age:"
@@ -208,6 +208,30 @@ main = do
             H.head $ H.title "Thing"
             H.body $ thingView view'
 
+      get "/client/:clientId" $ do
+        (clientId :: Integer) <- param "clientId"
+        client <- liftIO $ flip Db.runSqlPersistMPool pool $
+                    Db.get $ Db.toSqlKey (fromIntegral clientId)
+        case client of
+          Just (Client {..}) -> html $ mconcat [ "<html><body>"
+                                               , "  <h1>"
+                                               , pack clientFirstName
+                                               , "  </h1>"
+                                               , "  <h1>"
+                                               , pack clientLastName
+                                               , "  </h1>"
+                                               , "  <h1>"
+                                               , pack $ show $ Db.unSqlBackendKey $ unCountryKey $ clientCountry
+                                               , "  </h1>"
+                                               , "  <h1>"
+                                               , pack $ show clientAge
+                                               , "  </h1>"
+                                               , "</html></body>" ]
+          Nothing -> do
+                       status notFound404
+                       html "<h1> Not found</h1>"
+
+
       get "/register" $ do
         view <- getForm "client" clientForm
         let view' = fmap H.toHtml view
@@ -219,19 +243,17 @@ main = do
       post "/register" $ do
         params' <- params
         (view, client) <- postForm "client" clientForm (\_ -> return (paramsToEnv params'))
-        let view' = fmap H.toHtml view
         case client of
           Just c -> do
-            html $ renderHtml $
-              H.html $ do
-                H.head $ H.title "Success"
-                H.body $ H.text (T.toStrict $ pack (show c))
+            key <- liftIO $ Db.runSqlPersistMPool (Db.insert c) pool
+            let newId = Db.fromSqlKey key
+            redirect $ mconcat ["/client/", pack $ show newId]
           Nothing -> do
+            let view' = fmap H.toHtml view
             html $ renderHtml $
               H.html $ do
-                H.head $ H.title "Failure"
+                H.head $ H.title "Register client"
                 H.body $ clientView view'
-        
 
       notFound $ do
         status notFound404
