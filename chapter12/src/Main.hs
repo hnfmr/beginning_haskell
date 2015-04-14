@@ -90,7 +90,7 @@ thingView :: View H.Html -> H.Html
 thingView view = do
   form view "/thing" $ do
     label "thething" view "The Thing:"
-    inputRadio True "thething" view
+    inputSelect "thething" view
 
 foo :: String
 foo = "Foo"
@@ -127,7 +127,8 @@ clientView view = do
     errorList  "address"    view
     H.br
     label "country" view "Country:"
-    inputRadio True "country" view
+    -- inputRadio True "country" view
+    inputSelect "country" view
     errorList  "country"    view
     H.br
     label "age" view "Age:"
