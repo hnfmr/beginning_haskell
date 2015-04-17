@@ -17,7 +17,7 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:
-    Chapter13.Offer
+    --Chapter13.Offer
     Chapter13.OfferGADT
   build-depends:
     base >= 4.7

@@ -1,5 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE EmptyDataDecls #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Chapter13.OfferGADT where
 
@@ -16,8 +17,7 @@ data Expr a r where
   PriceOf               :: a -> Expr a Float
   TotalNumberProducts   :: Expr a Integer
   TotalPrice            :: Expr a Float
-  IVal                  :: Integer -> Expr a Integer
-  FVal                  :: Float -> Expr a Float
+  Val                   :: Num n => n -> Expr a n
   (:+:)                 :: Num n => Expr a n -> Expr a n -> Expr a n
   (:*:)                 :: Num n => Expr a n -> Expr a n -> Expr a n
   (:<:)                 :: Num n => Expr a n -> Expr a n -> Expr a n
@@ -27,12 +27,19 @@ data Expr a r where
   (:&&:)                :: Expr a Bool -> Expr a Bool -> Expr a Bool
   (:||:)                :: Expr a Bool -> Expr a Bool -> Expr a Bool
   Not                   :: Expr a Bool -> Expr a Bool
+  -- deriving Show
+
+priceOf :: Eq a => a -> [(a, Float)] -> Expr a Float
+priceOf x xs = let p = find x xs in
+  PriceOf p
+  where find _ [] = error "not in list"
+        find p (l:ls) = if p == fst l then p else find p ls
 
 interpretExpr :: Eq a => Expr a t -> [(a, Float)] -> t
 interpretExpr (e1 :+: e2)  list = interpretExpr e1 list + interpretExpr e2 list
 interpretExpr (e1 :||: e2) list = interpretExpr e1 list || interpretExpr e2 list
-interpretExpr e list =
-  let newl = map (\(p, f) -> (pof p, f)) list in
-  foldr (\(_, f) acc -> f + acc) 0.0 newl
+interpretExpr (PriceOf a) list = snd (find a list)
+  where find _ [] = error "not in list"
+        find p (l:ls) = if p == fst l then l else find p ls
 
 
