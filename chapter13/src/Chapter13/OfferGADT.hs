@@ -4,10 +4,17 @@
 
 module Chapter13.OfferGADT where
 
-data Offer a = Present a | PercentDiscount Float | AbsoluteDiscount Float
+data Offer a =
+    Present a
+  | PercentDiscount Float
+  | AbsoluteDiscount Float
   | Restrict [a] (Offer a)
-  | From Integer (Offer a) | Until Integer (Offer a) | Extend Integer (Offer a)
-  | Both (Offer a) (Offer a) | BetterOf (Offer a) (Offer a) | If (Expr a Bool) (Offer a) (Offer a)
+  | From Integer (Offer a)
+  | Until Integer (Offer a)
+  | Extend Integer (Offer a)
+  | Both (Offer a) (Offer a)
+  | BetterOf (Offer a) (Offer a)
+  | If (Expr a Bool) (Offer a) (Offer a)
 
 noOffer :: Offer a
 noOffer = AbsoluteDiscount 0
